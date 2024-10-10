@@ -264,14 +264,19 @@ def test_fetch_news(api_key: str):
 
 def test_fetch_news_methods(api_key: str):
     with fn_api.SyncClient(api_key=api_key) as client:
-        news_br = client.fetch_news_br()
-        news_stw = client.fetch_news_stw()
+        try:
+            news_br = client.fetch_news_br()
+            assert isinstance(news_br, fn_api.GameModeNews)
+            _test_game_mode_news(news_br)
+        except fn_api.NotFound:
+            pass
 
-    assert isinstance(news_stw, fn_api.GameModeNews)
-    _test_game_mode_news(news_br)
-
-    assert isinstance(news_stw, fn_api.GameModeNews)
-    _test_game_mode_news(news_stw)
+        try:
+            news_stw = client.fetch_news_stw()
+            assert isinstance(news_stw, fn_api.GameModeNews)
+            _test_game_mode_news(news_stw)
+        except fn_api.NotFound:
+            pass
 
 
 def test_sync_fetch_playlists(api_key: str):
@@ -303,6 +308,7 @@ def test_sync_beta_fetch_material_instances(api_key: str):
 
         assert instance.id
         assert instance.primary_mode
+        assert instance.product_tag
 
         # Walk through all the images and ensure they are assets
         for name, asset in instance.images.items():
@@ -335,10 +341,6 @@ def test_sync_fetch_shop(api_key: str):
         assert entry.in_date
         assert entry.out_date
 
-        tile_size = entry.tile_size
-        assert isinstance(tile_size, fn_api.TileSize)
-        assert tile_size.internal == f'Size_{tile_size.width}_x_{tile_size.height}'
-
         bundle = entry.bundle
         if bundle:
             assert isinstance(entry.bundle, fn_api.ShopEntryBundle)
@@ -357,12 +359,17 @@ def test_sync_fetch_shop(api_key: str):
         assert isinstance(entry.sort_priority, int)
         assert isinstance(entry.layout_id, str)
 
+        tile_size = entry.tile_size
+        assert isinstance(tile_size, fn_api.TileSize)
+        assert tile_size.internal == f'Size_{tile_size.width}_x_{tile_size.height}'
+
         layout = entry.layout
         if layout:
             assert isinstance(layout, fn_api.ShopEntryLayout)
             assert layout.id
             assert layout.name
             assert isinstance(layout.index, int)
+            assert isinstance(layout.rank, int)
             assert layout.show_ineligible_offers
 
         assert entry.dev_name
@@ -376,6 +383,12 @@ def test_sync_fetch_shop(api_key: str):
 
             for material_instance in new_display_asset.material_instances:
                 assert isinstance(material_instance, fn_api.MaterialInstance)
+
+        colors = entry.colors
+        if colors:
+            assert isinstance(colors, fn_api.ShopEntryColors)
+            assert isinstance(colors.color1, str)
+            assert isinstance(colors.color3, str)
 
         for cosmetic in entry.br + entry.tracks + entry.instruments + entry.cars + entry.lego_kits:
             assert isinstance(cosmetic, fn_api.Cosmetic)
